@@ -9,6 +9,7 @@
       "country_or_area": "China, Tibet Autonomous Region",
       "latitude": 28.63,
       "longitude": 87.08,
+      "boundary": [[86.65, 28.28], [87.55, 28.28], [87.55, 28.98], [86.65, 28.98], [86.65, 28.28]],
       "region_keyword": "tibet"
     },
     {
@@ -19,6 +20,7 @@
       "country_or_area": "Nepal",
       "latitude": 27.79,
       "longitude": 86.66,
+      "boundary": [[86.38, 27.45], [87.02, 27.45], [87.02, 28.13], [86.38, 28.13], [86.38, 27.45]],
       "region_keyword": "nepal"
     },
     {
@@ -29,6 +31,7 @@
       "country_or_area": "Nepal",
       "latitude": 27.72,
       "longitude": 86.22,
+      "boundary": [[85.88, 27.50], [86.55, 27.50], [86.55, 27.94], [85.88, 27.94], [85.88, 27.50]],
       "region_keyword": "nepal"
     }
   ]

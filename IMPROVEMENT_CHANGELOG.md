@@ -28,3 +28,7 @@ The most reliable data agent is not the one allowed to write arbitrary analysis 
 - Reused the reliability investigator to audit filtered catalog metadata.
 - Added CLI, FastAPI, and a map-first Streamlit workflow while retaining table analysis.
 - Added four remote-sensing regression tests (13 total tests passing).
+- Added centered interactive polygon mapping for target boundaries and satellite footprints.
+- Added acquisition timestamps, bands, CRS, resolution, and map tooltip metadata.
+- Added a catalog-options API endpoint and a full scene inspection panel.
+- Added a geometry/metadata contract regression test (14 total tests passing).

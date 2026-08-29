@@ -109,6 +109,7 @@ def match_districts(location_text: str, query: str, gazetteer_path: str | Path =
                 latitude=float(item["latitude"]),
                 longitude=float(item["longitude"]),
                 match_reason=f"alias:{matched}" if matched else f"regional context:{item['region_keyword']}",
+                boundary=item.get("boundary", []),
             ))
     return matches
 
@@ -116,6 +117,13 @@ def match_districts(location_text: str, query: str, gazetteer_path: str | Path =
 def load_asset_catalog(path: str | Path = DEFAULT_CATALOG) -> pd.DataFrame:
     frame = pd.read_csv(path)
     frame["acquisition_date"] = pd.to_datetime(frame["acquisition_date"], errors="raise").dt.date
+    frame["bands"] = frame["bands"].fillna("").map(lambda value: [item for item in str(value).split("|") if item])
+    frame["footprint"] = frame.apply(
+        lambda row: [[row.min_lon, row.min_lat], [row.max_lon, row.min_lat],
+                     [row.max_lon, row.max_lat], [row.min_lon, row.max_lat],
+                     [row.min_lon, row.min_lat]], axis=1
+    )
+    frame = frame.drop(columns=["min_lon", "min_lat", "max_lon", "max_lat"])
     return frame
 
 

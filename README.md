@@ -10,6 +10,7 @@ Data analysts regularly inherit files without trustworthy documentation. Manual 
 
 - Resolves disaster location and temporal range with local Ollama, with a reproducible fallback.
 - Maps matched district points and lists candidate Landsat 9, Sentinel-1C SLC/GRD, and derived InSAR filenames first.
+- Centers an interactive map on the incident, with target-boundary and satellite-footprint polygons plus hover metadata.
 - Filters candidates by date, platform, product type, and district.
 - Exposes the workflow through CLI, FastAPI, and a two-workflow Streamlit UI.
 - Profiles CSV, Excel, JSON-record, and Parquet tables without modifying the source.
@@ -69,6 +70,8 @@ make ui
 Open `http://localhost:8501` for the interactive demo.
 
 The satellite catalog bundled with the demo is illustrative, not a claim of exact remote archive availability. The UI and JSON output expose `catalog_status` and `verified_remote`; see [the remote-sensing design](docs/REMOTE_SENSING.md).
+
+On the map, hover over district or scene polygons for time, CRS, and band information. Select a filename below the map to inspect the full scene contract. Red polygons are approximate target boundaries; blue/green polygons are illustrative Sentinel/Landsat footprints.
 
 Run the local API:
 

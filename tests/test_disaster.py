@@ -36,6 +36,14 @@ class DisasterDiscoveryTests(unittest.TestCase):
         self.assertEqual(result.assets[0].processing_level, "DERIVED")
         self.assertIn("not a raw Sentinel product", result.assets[0].notes)
 
+    def test_map_geometry_and_scene_metadata_are_exposed(self) -> None:
+        result = discover_assets(DiscoveryRequest(
+            query="Dingri Tibet earthquake", start_date=date(2025, 1, 1), end_date=date(2025, 1, 31)
+        ), mode="deterministic", verify_catalog=False)
+        self.assertTrue(all(len(district.boundary) >= 4 for district in result.districts))
+        self.assertTrue(all(len(asset.footprint) == 5 for asset in result.assets))
+        self.assertTrue(all(asset.crs and asset.bands and asset.acquisition_datetime for asset in result.assets))
+
 
 if __name__ == "__main__":
     unittest.main()

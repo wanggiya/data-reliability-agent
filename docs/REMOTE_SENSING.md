@@ -8,6 +8,12 @@
 4. The existing data-reliability engine audits the filtered catalog metadata.
 5. The UI presents filenames first and makes their verification status visible.
 
+## Interactive map
+
+The Streamlit view centers the map on all matched districts. Red outlines represent target-area boundaries. Blue and green translucent polygons represent Sentinel-1C and Landsat 9 candidate footprints. Hovering over a polygon shows its type, filename or district, acquisition time, CRS, and band/polarization information. A scene selector below the map opens the complete metadata panel.
+
+Both district boundaries and satellite footprints bundled here are approximate demonstration polygons. They are marked illustrative in the response contract and must not be presented as authoritative operational geometry.
+
 The bundled catalog is intentionally marked `illustrative`. It demonstrates product naming and workflow behavior without claiming that each exact identifier exists in a remote archive. An operational version should query USGS EarthExplorer/M2M and the Copernicus Data Space APIs, preserve provider identifiers, footprints, cloud cover/orbit metadata, and mark records verified only after a successful catalog response.
 
 ## Product semantics

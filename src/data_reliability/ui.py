@@ -5,6 +5,7 @@ from datetime import date
 from pathlib import Path
 
 import pandas as pd
+import pydeck as pdk
 import streamlit as st
 
 from .disaster import discover_assets
@@ -42,15 +43,58 @@ def disaster_finder() -> None:
     c.metric("Resolver confidence", f"{event.confidence:.0%}")
     st.write(f"**Location:** {event.location_text} · **Hazard:** {event.hazard} · **Resolver:** {event.resolution_source}")
     if result.districts:
-        map_frame = pd.DataFrame([{"lat": d.latitude, "lon": d.longitude, "district": d.name, "country_or_area": d.country_or_area} for d in result.districts])
-        st.map(map_frame, latitude="lat", longitude="lon")
-        st.dataframe(map_frame[["district", "country_or_area", "lat", "lon"]], hide_index=True, use_container_width=True)
+        district_records = [{
+            "polygon": d.boundary, "title": d.name, "kind": "TARGET DISTRICT",
+            "detail": f"{d.admin1} · {d.country_or_area}", "time": "Event area",
+            "crs": "EPSG:4326 display", "bands": "—",
+        } for d in result.districts if d.boundary]
+        asset_records = [{
+            "polygon": asset.footprint, "title": asset.filename, "kind": "SATELLITE FOOTPRINT",
+            "detail": f"{asset.platform} · {asset.product_type}",
+            "time": asset.acquisition_datetime.isoformat() if asset.acquisition_datetime else asset.acquisition_date.isoformat(),
+            "crs": asset.crs, "bands": ", ".join(asset.bands),
+            "fill": [33, 150, 243, 55] if asset.platform == "SENTINEL_1C" else [46, 204, 113, 55],
+        } for asset in result.assets if asset.footprint]
+        center_lat = sum(d.latitude for d in result.districts) / len(result.districts)
+        center_lon = sum(d.longitude for d in result.districts) / len(result.districts)
+        target_layer = pdk.Layer(
+            "PolygonLayer", district_records, get_polygon="polygon",
+            get_fill_color=[220, 38, 38, 25], get_line_color=[239, 68, 68, 255],
+            line_width_min_pixels=3, stroked=True, filled=True, pickable=True,
+        )
+        scene_layer = pdk.Layer(
+            "PolygonLayer", asset_records, get_polygon="polygon", get_fill_color="fill",
+            get_line_color=[37, 99, 235, 210], line_width_min_pixels=2,
+            stroked=True, filled=True, pickable=True,
+        )
+        tooltip = {"html": (
+            "<b>{kind}</b><br/><b>{title}</b><hr/>"
+            "{detail}<br/><b>Time:</b> {time}<br/><b>CRS:</b> {crs}<br/><b>Bands:</b> {bands}"
+        ), "style": {"backgroundColor": "#111827", "color": "white"}}
+        st.markdown("**Map layers:** 🔴 target district boundary · 🔵 Sentinel-1C footprint · 🟢 Landsat 9 footprint")
+        st.pydeck_chart(pdk.Deck(
+            layers=[scene_layer, target_layer],
+            initial_view_state=pdk.ViewState(latitude=center_lat, longitude=center_lon, zoom=7.2, pitch=0),
+            map_style="light", tooltip=tooltip,
+        ), use_container_width=True, height=590)
     for warning in result.warnings:
         st.warning(warning)
     st.subheader("Candidate filenames")
     if result.assets:
         assets = pd.DataFrame([asset.model_dump(mode="json") for asset in result.assets])
-        ordered = ["filename", "platform", "product_type", "acquisition_date", "district_id", "processing_level", "catalog_status", "verified_remote", "notes"]
+        selected_name = st.selectbox("Inspect a satellite candidate", [asset.filename for asset in result.assets])
+        selected = next(asset for asset in result.assets if asset.filename == selected_name)
+        meta_left, meta_right = st.columns(2)
+        with meta_left:
+            st.markdown(f"**Platform / product:** {selected.platform} / {selected.product_type}")
+            st.markdown(f"**Acquisition:** {selected.acquisition_datetime or selected.acquisition_date}")
+            st.markdown(f"**CRS / resolution:** {selected.crs} / {selected.spatial_resolution_m or 'unknown'} m")
+        with meta_right:
+            st.markdown(f"**Bands or polarizations:** {', '.join(selected.bands) or 'not supplied'}")
+            st.markdown(f"**Orbit:** {selected.orbit_direction or 'not applicable'}")
+            st.markdown(f"**Catalog status:** {selected.catalog_status} · remote verified: {selected.verified_remote}")
+        st.caption(selected.notes)
+        ordered = ["filename", "platform", "product_type", "acquisition_datetime", "bands", "crs", "spatial_resolution_m", "district_id", "catalog_status", "verified_remote"]
         st.dataframe(assets[ordered], hide_index=True, use_container_width=True)
         st.download_button("Download candidate metadata", result.model_dump_json(indent=2), "satellite-candidates.json", "application/json")
     else:

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -30,6 +30,7 @@ class DistrictMatch(BaseModel):
     latitude: float
     longitude: float
     match_reason: str
+    boundary: list[list[float]] = Field(default_factory=list)
 
 
 class SatelliteAsset(BaseModel):
@@ -38,9 +39,14 @@ class SatelliteAsset(BaseModel):
     product_type: str
     processing_level: str
     acquisition_date: date
+    acquisition_datetime: datetime | None = None
     district_id: str
     orbit_direction: str | None = None
     polarization: str | None = None
+    bands: list[str] = Field(default_factory=list)
+    crs: str
+    spatial_resolution_m: float | None = None
+    footprint: list[list[float]] = Field(default_factory=list)
     source_catalog: str
     catalog_status: str
     verified_remote: bool = False
@@ -63,4 +69,3 @@ class DiscoveryResult(BaseModel):
     warnings: list[str] = Field(default_factory=list)
     catalog_quality_run_id: str | None = None
     catalog_quality_report: str | None = None
-
