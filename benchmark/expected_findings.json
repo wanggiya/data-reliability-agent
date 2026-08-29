@@ -1,0 +1,42 @@
+{
+  "cases": [
+    {
+      "file": "case_01_clean.csv",
+      "expected": []
+    },
+    {
+      "file": "case_02_missing.csv",
+      "expected": [
+        "missing_values"
+      ]
+    },
+    {
+      "file": "case_03_duplicate.csv",
+      "expected": [
+        "duplicate_rows",
+        "duplicate_ids"
+      ]
+    },
+    {
+      "file": "case_04_category.csv",
+      "expected": [
+        "category_inconsistency"
+      ]
+    },
+    {
+      "file": "case_05_date_gap.csv",
+      "expected": [
+        "date_gaps"
+      ]
+    },
+    {
+      "file": "case_06_multi_issue.csv",
+      "expected": [
+        "negative_values",
+        "numeric_outliers",
+        "category_inconsistency",
+        "suspicious_zeros"
+      ]
+    }
+  ]
+}
