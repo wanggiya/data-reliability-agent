@@ -136,11 +136,9 @@ def discover_assets(
     output_root: str | Path = "outputs",
 ) -> DiscoveryResult:
     event = resolve_event(request.query, mode)
-    if request.start_date:
-        event.start_date = request.start_date
-    if request.end_date:
-        event.end_date = request.end_date
-    if event.end_date < event.start_date:
+    filter_start = request.start_date or event.start_date
+    filter_end = request.end_date or event.end_date
+    if filter_end < filter_start:
         raise ValueError("End date must not precede start date")
 
     districts = match_districts(event.location_text, request.query, gazetteer_path)
@@ -148,13 +146,18 @@ def discover_assets(
     district_ids = {district.district_id for district in districts}
     selected = frame[
         frame["district_id"].isin(district_ids)
-        & frame["acquisition_date"].between(event.start_date, event.end_date)
+        & frame["acquisition_date"].between(filter_start, filter_end)
     ].copy()
     if request.platforms:
         selected = selected[selected["platform"].isin(request.platforms)]
     if request.product_types:
         selected = selected[selected["product_type"].isin(request.product_types)]
     selected = selected.sort_values(["acquisition_date", "platform", "filename"])
+    selected["temporal_phase"] = selected["acquisition_date"].map(
+        lambda acquired: "PRE_EVENT" if acquired < event.start_date else (
+            "EVENT_DAY" if acquired == event.start_date else "POST_EVENT"
+        )
+    )
     records = selected.astype(object).where(pd.notna(selected), None).to_dict(orient="records")
     assets = [SatelliteAsset.model_validate(record) for record in records]
 
@@ -179,8 +182,9 @@ def discover_assets(
         districts=districts,
         assets=assets,
         filters_applied={
-            "start_date": event.start_date.isoformat(),
-            "end_date": event.end_date.isoformat(),
+            "start_date": filter_start.isoformat(),
+            "end_date": filter_end.isoformat(),
+            "event_start_date": event.start_date.isoformat(),
             "platforms": request.platforms,
             "product_types": request.product_types,
             "district_ids": sorted(district_ids),

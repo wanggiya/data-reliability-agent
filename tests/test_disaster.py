@@ -44,6 +44,15 @@ class DisasterDiscoveryTests(unittest.TestCase):
         self.assertTrue(all(len(asset.footprint) == 5 for asset in result.assets))
         self.assertTrue(all(asset.crs and asset.bands and asset.acquisition_datetime for asset in result.assets))
 
+    def test_event_date_is_preserved_and_acquisitions_are_phased(self) -> None:
+        result = discover_assets(DiscoveryRequest(
+            query="Dingri Tibet earthquake", start_date=date(2025, 1, 1), end_date=date(2025, 1, 31)
+        ), mode="deterministic", verify_catalog=False)
+        self.assertEqual(result.event.start_date, date(2025, 1, 7))
+        self.assertIn("SENTINEL_2", {asset.platform for asset in result.assets})
+        self.assertIn("PRE_EVENT", {asset.temporal_phase for asset in result.assets})
+        self.assertIn("POST_EVENT", {asset.temporal_phase for asset in result.assets})
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -47,6 +47,7 @@ class SatelliteAsset(BaseModel):
     crs: str
     spatial_resolution_m: float | None = None
     footprint: list[list[float]] = Field(default_factory=list)
+    temporal_phase: str = "UNKNOWN"
     source_catalog: str
     catalog_status: str
     verified_remote: bool = False

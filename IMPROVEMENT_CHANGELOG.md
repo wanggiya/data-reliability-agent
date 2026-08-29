@@ -32,3 +32,4 @@ The most reliable data agent is not the one allowed to write arbitrary analysis 
 - Added acquisition timestamps, bands, CRS, resolution, and map tooltip metadata.
 - Added a catalog-options API endpoint and a full scene inspection panel.
 - Added a geometry/metadata contract regression test (14 total tests passing).
+- Added Sentinel-2 Level-2A candidates, a global landing map, sidebar search, automatic incident recentering, and a pre/post-event acquisition timeline (15 total tests passing).
