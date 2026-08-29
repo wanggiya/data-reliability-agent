@@ -1,0 +1,9 @@
+filename,platform,product_type,processing_level,acquisition_date,district_id,orbit_direction,polarization,source_catalog,catalog_status,verified_remote,notes
+LC09_L2SP_140040_20250103_20250105_02_T1.tar,LANDSAT_9,OPTICAL_L2SP,LEVEL_2,2025-01-03,CN-XZ-DINGRI,,,USGS_NAMING_DEMO,illustrative,false,"Example Collection 2 identifier; verify exact WRS path/row and archive availability"
+LC09_L2SP_140040_20250119_20250121_02_T1.tar,LANDSAT_9,OPTICAL_L2SP,LEVEL_2,2025-01-19,CN-XZ-DINGRI,,,USGS_NAMING_DEMO,illustrative,false,"Example post-event optical candidate"
+S1C_IW_SLC__1SDV_20250105T120000_20250105T120027_000999_001AAA_DEMO.SAFE,SENTINEL_1C,SAR_SLC,LEVEL_1,2025-01-05,CN-XZ-DINGRI,DESCENDING,VV+VH,COPERNICUS_NAMING_DEMO,illustrative,false,"Example pre-event SLC filename; not an archive assertion"
+S1C_IW_SLC__1SDV_20250117T120000_20250117T120027_001174_001BBB_DEMO.SAFE,SENTINEL_1C,SAR_SLC,LEVEL_1,2025-01-17,CN-XZ-DINGRI,DESCENDING,VV+VH,COPERNICUS_NAMING_DEMO,illustrative,false,"Example post-event SLC filename; not an archive assertion"
+INSAR_S1C_IW_DINGRI_20250105_20250117_VV_DEMO.tif,SENTINEL_1C,DERIVED_INSAR,DERIVED,2025-01-17,CN-XZ-DINGRI,DESCENDING,VV,LOCAL_DERIVED_DEMO,illustrative,false,"Derived interferogram candidate from an SLC pair; not a raw Sentinel product"
+S1C_IW_GRDH_1SDV_20250109T120000_20250109T120025_001057_001CCC_DEMO.SAFE,SENTINEL_1C,SAR_GRD,LEVEL_1,2025-01-09,NP-P1-SOLU,DESCENDING,VV+VH,COPERNICUS_NAMING_DEMO,illustrative,false,"Example Nepal-side radar candidate"
+LC09_L2SP_141040_20250111_20250113_02_T1.tar,LANDSAT_9,OPTICAL_L2SP,LEVEL_2,2025-01-11,NP-P1-SOLU,,,USGS_NAMING_DEMO,illustrative,false,"Example Nepal-side optical candidate"
+S1C_IW_GRDH_1SDV_20250109T120000_20250109T120025_001057_001DDD_DEMO.SAFE,SENTINEL_1C,SAR_GRD,LEVEL_1,2025-01-09,NP-P3-DOLAKHA,DESCENDING,VV+VH,COPERNICUS_NAMING_DEMO,illustrative,false,"Example neighboring district candidate"

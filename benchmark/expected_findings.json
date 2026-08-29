@@ -37,6 +37,37 @@
         "category_inconsistency",
         "suspicious_zeros"
       ]
+    },
+    {
+      "file": "case_07_duplicate_id_only.csv",
+      "expected": [
+        "duplicate_ids"
+      ]
+    },
+    {
+      "file": "case_08_outlier.csv",
+      "expected": [
+        "numeric_outliers"
+      ]
+    },
+    {
+      "file": "case_09_bad_total.csv",
+      "expected": [
+        "total_reconciliation"
+      ]
+    },
+    {
+      "file": "case_10_missing_and_category.csv",
+      "expected": [
+        "missing_values",
+        "category_inconsistency"
+      ]
+    },
+    {
+      "file": "case_11_constant_zero.csv",
+      "expected": [
+        "suspicious_zeros"
+      ]
     }
   ]
 }

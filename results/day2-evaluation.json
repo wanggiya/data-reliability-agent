@@ -1,0 +1,21 @@
+{
+  "benchmark_cases": 11,
+  "expected_findings": 15,
+  "baseline": {
+    "true_positives": 3,
+    "false_positives": 0,
+    "false_negatives": 12,
+    "precision": 1.0,
+    "recall": 0.2,
+    "f1": 0.33333333333333337
+  },
+  "agent": {
+    "true_positives": 15,
+    "false_positives": 0,
+    "false_negatives": 0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0
+  },
+  "qualification": "Controlled synthetic regression benchmark; not a claim of perfect real-world accuracy."
+}

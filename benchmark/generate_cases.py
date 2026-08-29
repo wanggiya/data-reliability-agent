@@ -48,10 +48,33 @@ def main() -> None:
     multi.to_csv(CASES / "case_06_multi_issue.csv", index=False)
     cases.append({"file": "case_06_multi_issue.csv", "expected": ["negative_values", "numeric_outliers", "category_inconsistency", "suspicious_zeros"]})
 
+    duplicate_id = base(); duplicate_id.loc[6, "record_id"] = 2
+    duplicate_id.to_csv(CASES / "case_07_duplicate_id_only.csv", index=False)
+    cases.append({"file": "case_07_duplicate_id_only.csv", "expected": ["duplicate_ids"]})
+
+    outlier = base(); outlier.loc[7, "revenue"] = 10000
+    outlier.to_csv(CASES / "case_08_outlier.csv", index=False)
+    cases.append({"file": "case_08_outlier.csv", "expected": ["numeric_outliers"]})
+
+    reconcile = base()[["record_id", "month", "region"]].copy()
+    reconcile["component_a"] = [4, 5, 6, 7, 8, 9, 10, 11]
+    reconcile["component_b"] = [6, 7, 5, 8, 5, 5, 6, 7]
+    reconcile["total"] = reconcile["component_a"] + reconcile["component_b"]
+    reconcile.loc[5, "total"] += 3
+    reconcile.to_csv(CASES / "case_09_bad_total.csv", index=False)
+    cases.append({"file": "case_09_bad_total.csv", "expected": ["total_reconciliation"]})
+
+    mixed = base(); mixed.loc[0, "region"] = " North "; mixed.loc[5, "cases"] = None
+    mixed.to_csv(CASES / "case_10_missing_and_category.csv", index=False)
+    cases.append({"file": "case_10_missing_and_category.csv", "expected": ["missing_values", "category_inconsistency"]})
+
+    zero = base(); zero["forecast"] = [0] * len(zero)
+    zero.to_csv(CASES / "case_11_constant_zero.csv", index=False)
+    cases.append({"file": "case_11_constant_zero.csv", "expected": ["suspicious_zeros"]})
+
     (ROOT / "expected_findings.json").write_text(json.dumps({"cases": cases}, indent=2) + "\n", encoding="utf-8")
     print(f"Generated {len(cases)} benchmark cases in {CASES}")
 
 
 if __name__ == "__main__":
     main()
-

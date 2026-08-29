@@ -1,0 +1,35 @@
+{
+  "status": "offline demonstration gazetteer",
+  "districts": [
+    {
+      "district_id": "CN-XZ-DINGRI",
+      "name": "Dingri County",
+      "aliases": ["Dingri", "Tingri"],
+      "admin1": "Shigatse",
+      "country_or_area": "China, Tibet Autonomous Region",
+      "latitude": 28.63,
+      "longitude": 87.08,
+      "region_keyword": "tibet"
+    },
+    {
+      "district_id": "NP-P1-SOLU",
+      "name": "Solukhumbu District",
+      "aliases": ["Solukhumbu", "Everest region"],
+      "admin1": "Koshi Province",
+      "country_or_area": "Nepal",
+      "latitude": 27.79,
+      "longitude": 86.66,
+      "region_keyword": "nepal"
+    },
+    {
+      "district_id": "NP-P3-DOLAKHA",
+      "name": "Dolakha District",
+      "aliases": ["Dolakha"],
+      "admin1": "Bagmati Province",
+      "country_or_area": "Nepal",
+      "latitude": 27.72,
+      "longitude": 86.22,
+      "region_keyword": "nepal"
+    }
+  ]
+}

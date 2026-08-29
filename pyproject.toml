@@ -9,9 +9,17 @@ description = "Evidence-first agentic investigation for unfamiliar tabular data"
 requires-python = ">=3.11"
 dependencies = ["pandas>=2.0", "pydantic>=2.6"]
 
+[project.optional-dependencies]
+formats = ["openpyxl>=3.1", "pyarrow>=15"]
+ui = ["streamlit>=1.37"]
+api = ["fastapi>=0.115", "uvicorn>=0.30"]
+all = ["openpyxl>=3.1", "pyarrow>=15", "streamlit>=1.37", "fastapi>=0.115", "uvicorn>=0.30"]
+
 [project.scripts]
 data-reliability = "data_reliability.cli:main"
 
+[project.entry-points."data_reliability"]
+streamlit = "data_reliability.ui:main"
+
 [tool.setuptools.packages.find]
 where = ["src"]
-

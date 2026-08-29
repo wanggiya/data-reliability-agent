@@ -70,6 +70,31 @@ class VerificationSummary(BaseModel):
     rejected_reasons: list[str] = Field(default_factory=list)
 
 
+class RepairAction(str, Enum):
+    drop_exact_duplicates = "drop_exact_duplicates"
+    normalize_category_formatting = "normalize_category_formatting"
+    replace_negative_with_null = "replace_negative_with_null"
+
+
+class RepairProposal(BaseModel):
+    proposal_id: str
+    action: RepairAction
+    column: str | None = None
+    reason: str
+    affected_count: int
+    risk: str
+    approved: bool = False
+
+
+class RepairResult(BaseModel):
+    source_path: str
+    output_path: str
+    approved_proposal_ids: list[str]
+    rows_before: int
+    rows_after: int
+    changes_applied: list[str]
+
+
 class RunResult(BaseModel):
     run_id: str
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
@@ -77,6 +102,6 @@ class RunResult(BaseModel):
     plan: InvestigationPlan
     findings: list[Finding]
     verification: VerificationSummary
+    repair_proposals: list[RepairProposal] = Field(default_factory=list)
     report_path: str | None = None
     trajectory_path: str | None = None
-

@@ -83,7 +83,7 @@ def run_check(name: CheckName, frame: pd.DataFrame, profile: DatasetProfile) -> 
 
     elif name == CheckName.total_reconciliation:
         total_columns = [c for c in frame.columns if c.lower() == "total"]
-        components = [c for c in profile.numeric_columns if c not in total_columns]
+        components = [c for c in profile.numeric_columns if c not in total_columns and c not in profile.id_candidates]
         for total in total_columns:
             if len(components) >= 2:
                 delta = frame[components].sum(axis=1) - frame[total]
@@ -98,4 +98,3 @@ def execute_plan(checks: list[CheckName], frame: pd.DataFrame, profile: DatasetP
     for check in checks:
         evidence.extend(run_check(check, frame, profile))
     return evidence
-
