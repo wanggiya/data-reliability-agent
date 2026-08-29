@@ -8,3 +8,10 @@ build/
 .streamlit/
 outputs/*
 !outputs/.gitkeep
+
+# Generated files
+.venv/
+outputs/
+__pycache__/
+*.pyc
+results/
