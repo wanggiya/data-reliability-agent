@@ -8,3 +8,7 @@ build/
 .streamlit/
 outputs/*
 !outputs/.gitkeep
+
+# Local video and Windows metadata
+*.mp4
+*:Zone.Identifier
