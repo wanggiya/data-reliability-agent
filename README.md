@@ -12,6 +12,10 @@ The map combines disaster resolution, administrative-boundary provenance,
 satellite planning candidates, temporal filtering, hydrography, affected-area
 textures, and downloadable evidence reporting.
 
+## Demo video
+
+[Watch the five-minute GeoReliability Agent demonstration](YOUR_VIDEO_URL)
+
 ## User and bottleneck
 
 Data analysts regularly inherit files without trustworthy documentation. Manual inspection is inconsistent and a direct LLM prompt can make plausible claims without calculating evidence. This project combines agent-selected investigation plans with deterministic checks and independent verification. Every accepted claim points to calculated evidence.
