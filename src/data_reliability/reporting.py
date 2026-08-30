@@ -37,11 +37,19 @@ def write_markdown(result: RunResult, path: Path) -> Path:
         f"- Accepted findings: {result.verification.accepted}",
         f"- Rejected unsupported findings: {result.verification.rejected}",
         "",
+        "## Proposed repairs — approval required",
+        "",
+    ])
+    if not result.repair_proposals:
+        lines.append("No bounded automatic repair is proposed for these findings.")
+    for proposal in result.repair_proposals:
+        lines.append(f"- `{proposal.proposal_id}`: {proposal.action.value}; affected≈{proposal.affected_count}; risk={proposal.risk}")
+    lines.extend([
+        "",
         "## Safety note",
         "",
-        "This run was read-only. Proposed repairs require explicit human approval and are not part of the Day 1 implementation.",
+        "Investigation is read-only. Repairs require explicit proposal IDs, never overwrite the source, and write a separate output file.",
     ])
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return path
-

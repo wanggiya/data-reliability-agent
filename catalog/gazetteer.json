@@ -1,0 +1,38 @@
+{
+  "status": "offline demonstration gazetteer",
+  "districts": [
+    {
+      "district_id": "CN-XZ-DINGRI",
+      "name": "Dingri County",
+      "aliases": ["Dingri", "Tingri"],
+      "admin1": "Shigatse",
+      "country_or_area": "China, Tibet Autonomous Region",
+      "latitude": 28.63,
+      "longitude": 87.08,
+      "boundary": [[86.64, 28.43], [86.77, 28.23], [87.08, 28.18], [87.39, 28.31], [87.58, 28.55], [87.48, 28.82], [87.22, 29.02], [86.91, 28.95], [86.70, 28.73], [86.64, 28.43]],
+      "region_keyword": "tibet"
+    },
+    {
+      "district_id": "NP-P1-SOLU",
+      "name": "Solukhumbu District",
+      "aliases": ["Solukhumbu", "Everest region"],
+      "admin1": "Koshi Province",
+      "country_or_area": "Nepal",
+      "latitude": 27.79,
+      "longitude": 86.66,
+      "boundary": [[86.35, 27.55], [86.51, 27.39], [86.79, 27.42], [87.06, 27.61], [87.08, 27.89], [86.90, 28.14], [86.62, 28.17], [86.40, 27.94], [86.35, 27.55]],
+      "region_keyword": "nepal"
+    },
+    {
+      "district_id": "NP-P3-DOLAKHA",
+      "name": "Dolakha District",
+      "aliases": ["Dolakha"],
+      "admin1": "Bagmati Province",
+      "country_or_area": "Nepal",
+      "latitude": 27.72,
+      "longitude": 86.22,
+      "boundary": [[85.86, 27.62], [86.02, 27.46], [86.28, 27.48], [86.56, 27.64], [86.49, 27.91], [86.24, 28.01], [85.99, 27.91], [85.86, 27.62]],
+      "region_keyword": "nepal"
+    }
+  ]
+}

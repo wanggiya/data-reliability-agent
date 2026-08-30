@@ -1,0 +1,48 @@
+from __future__ import annotations
+
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import RedirectResponse
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
+
+from .disaster import discover_assets, load_asset_catalog, load_gazetteer
+from .disaster_models import DiscoveryRequest, DiscoveryResult
+
+
+app = FastAPI(title="GeoReliability API", version="0.2.0")
+WEB_ROOT = Path(__file__).resolve().parents[2] / "web"
+
+
+@app.get("/health")
+def health() -> dict[str, str]:
+    return {"status": "ok"}
+
+
+@app.get("/catalog/options")
+def catalog_options() -> dict[str, object]:
+    catalog = load_asset_catalog()
+    return {
+        "platforms": sorted(catalog["platform"].unique().tolist()),
+        "product_types": sorted(catalog["product_type"].unique().tolist()),
+        "crs": sorted(catalog["crs"].unique().tolist()),
+        "districts": [{"district_id": item["district_id"], "name": item["name"]} for item in load_gazetteer()],
+        "geometry_status": "illustrative-demo",
+    }
+
+
+@app.post("/discover", response_model=DiscoveryResult)
+def discover(request: DiscoveryRequest, mode: str = "ollama") -> DiscoveryResult:
+    if mode not in {"ollama", "deterministic"}:
+        raise HTTPException(status_code=400, detail="mode must be ollama or deterministic")
+    try:
+        return discover_assets(request, mode=mode)
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+
+
+@app.get("/", include_in_schema=False)
+def web_app() -> RedirectResponse:
+    return RedirectResponse("/app/")
+
+
+app.mount("/app", StaticFiles(directory=WEB_ROOT, html=True), name="web-app")
