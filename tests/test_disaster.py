@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import unittest
 from datetime import date
+from unittest.mock import patch
 
 from data_reliability.disaster import discover_assets, match_districts, resolve_event
-from data_reliability.disaster_models import DiscoveryRequest
+from data_reliability.disaster_models import DiscoveryRequest, ResolvedEvent
 
 
 class DisasterDiscoveryTests(unittest.TestCase):
@@ -12,6 +13,12 @@ class DisasterDiscoveryTests(unittest.TestCase):
         event = resolve_event("January 2025 Dingri Tibet earthquake", mode="deterministic")
         self.assertEqual(event.start_date, date(2025, 1, 7))
         self.assertEqual(event.hazard, "earthquake")
+
+    def test_pakistan_flood_demo_has_mappable_fallback(self) -> None:
+        event = resolve_event("August 2022 floods near Sukkur and Larkana, Pakistan", mode="deterministic")
+        self.assertEqual(event.hazard, "flood")
+        self.assertIsNotNone(event.latitude)
+        self.assertIsNotNone(event.longitude)
 
     def test_district_matching_includes_cross_border_context(self) -> None:
         matches = match_districts("Dingri County, Tibet", "earthquake affecting Tibet and Nepal")
@@ -52,6 +59,32 @@ class DisasterDiscoveryTests(unittest.TestCase):
         self.assertIn("SENTINEL_2", {asset.platform for asset in result.assets})
         self.assertIn("PRE_EVENT", {asset.temporal_phase for asset in result.assets})
         self.assertIn("POST_EVENT", {asset.temporal_phase for asset in result.assets})
+
+    def test_uncatalogued_flood_gets_labeled_planning_candidates(self) -> None:
+        flood = ResolvedEvent(
+            query="July 2026 river flood near Test City",
+            event_name="Test City flood",
+            location_text="Test City",
+            start_date=date(2026, 7, 10),
+            end_date=date(2026, 7, 14),
+            hazard="flood",
+            resolution_source="ollama:test",
+            confidence=0.8,
+            latitude=35.0,
+            longitude=-90.0,
+        )
+        with patch("data_reliability.disaster.resolve_event", return_value=flood):
+            result = discover_assets(DiscoveryRequest(
+                query=flood.query,
+                start_date=date(2026, 7, 5),
+                end_date=date(2026, 7, 20),
+            ), verify_catalog=False, boundary_mode="offline")
+        self.assertEqual(result.districts[0].boundary_status, "illustrative-planning-area")
+        self.assertTrue(result.assets)
+        self.assertIn("SAR_GRD", {asset.product_type for asset in result.assets})
+        self.assertTrue(all(asset.filename.startswith("ILLUSTRATIVE_") for asset in result.assets))
+        self.assertTrue(all(not asset.verified_remote for asset in result.assets))
+        self.assertTrue(any("not a confirmed provider asset" in asset.notes for asset in result.assets))
 
 
 if __name__ == "__main__":

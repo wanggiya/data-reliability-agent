@@ -3,6 +3,7 @@ const View = ol.View;
 const TileLayer = ol.layer.Tile;
 const VectorLayer = ol.layer.Vector;
 const OSM = ol.source.OSM;
+const XYZ = ol.source.XYZ;
 const VectorSource = ol.source.Vector;
 const Feature = ol.Feature;
 const Polygon = ol.geom.Polygon;
@@ -27,11 +28,19 @@ const vectorLayers = Object.fromEntries(Object.entries(vectorSources).map(([key,
 const boundarySource = new VectorSource();
 const boundaryLayer = new VectorLayer({source:boundarySource, style:new Style({fill:new Fill({color:'rgba(239,68,68,.04)'}),stroke:new Stroke({color:'#ff3b3b',width:3})})});
 const impactSource = new VectorSource();
-const impactLayer = new VectorLayer({source:impactSource, style:feature => new Style({fill:new Fill({color:`rgba(239,68,68,${feature.get('alpha')})`}),stroke:new Stroke({color:'rgba(248,113,113,.55)',width:1.4})})});
+const impactLayer = new VectorLayer({source:impactSource,style:feature=>new Style({fill:new Fill({color:feature.get('fill')}),stroke:new Stroke({color:feature.get('stroke'),width:1.4})})});
 const eventSource = new VectorSource();
 const eventLayer = new VectorLayer({source:eventSource, style:new Style({image:new CircleStyle({radius:7,fill:new Fill({color:'#dc2626'}),stroke:new Stroke({color:'#fff',width:2})})})});
 
-const map = new Map({target:'map', layers:[new TileLayer({source:new OSM()}), impactLayer, ...Object.values(vectorLayers), boundaryLayer, eventLayer], view:new View({center:fromLonLat([15,18]),zoom:2,minZoom:2})});
+const basemapLayers = {
+  light: new TileLayer({source:new OSM()}),
+  dark: new TileLayer({source:new OSM(),className:'basemap-dark',visible:false}),
+  terrain: new TileLayer({source:new XYZ({url:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',attributions:'Tiles © Esri'}),visible:false}),
+  satellite: new TileLayer({source:new XYZ({url:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',attributions:'Tiles © Esri'}),visible:false}),
+};
+const hillshadeLayer=new TileLayer({source:new XYZ({url:'https://server.arcgisonline.com/ArcGIS/rest/services/Elevation/World_Hillshade/MapServer/tile/{z}/{y}/{x}',attributions:'Elevation hillshade © Esri'}),opacity:.48,visible:false});
+const hydroLayer=new TileLayer({source:new XYZ({url:'https://tiles.arcgis.com/tiles/P3ePLMYs2RVChkJx/arcgis/rest/services/Esri_Hydro_Reference_Overlay/MapServer/tile/{z}/{y}/{x}',attributions:'Hydro reference © Esri'}),opacity:.9,visible:false});
+const map = new Map({target:'map',layers:[...Object.values(basemapLayers),hillshadeLayer,hydroLayer,impactLayer,...Object.values(vectorLayers),boundaryLayer,eventLayer],view:new View({center:fromLonLat([15,18]),zoom:2,minZoom:2})});
 let result = null;
 let timelineDates = [];
 const $ = id => document.getElementById(id);
@@ -62,10 +71,11 @@ function refreshScenes() {
 
 function refreshImpact() {
   impactSource.clear();
-  if (!result?.event?.longitude || !result?.event?.latitude) return;
+  if (result?.event?.longitude == null || result?.event?.latitude == null) return;
   const center=fromLonLat([result.event.longitude,result.event.latitude]);
   const radius=Number($('radius').value)*1000;
-  [[1,.055],[.68,.075],[.36,.11]].forEach(([scale,alpha])=>{const feature=new Feature(new CircleGeom(center,radius*scale));feature.setProperties({kind:'Affected-area planning zone',title:`${Math.round(radius*scale/1000)} km radius`,alpha});impactSource.addFeature(feature);});
+  const waterHazard=['flood','water','tsunami','storm','cyclone'].some(term=>String(result.event.hazard).toLowerCase().includes(term));
+  [[1,.07],[.68,.10],[.36,.16]].forEach(([scale,alpha])=>{const feature=new Feature(new CircleGeom(center,radius*scale));feature.setProperties({kind:waterHazard?'Illustrative flood planning zone':'Affected-area planning zone',title:`${Math.round(radius*scale/1000)} km planning radius`,fill:waterHazard?`rgba(14,165,233,${alpha})`:`rgba(239,68,68,${alpha})`,stroke:waterHazard?'rgba(56,189,248,.78)':'rgba(248,113,113,.58)'});impactSource.addFeature(feature);});
 }
 
 function showDetail(asset) {
@@ -76,6 +86,8 @@ function showDetail(asset) {
 
 function renderResult(data) {
   result=data; boundarySource.clear(); eventSource.clear();
+  const waterHazard=['flood','water','tsunami','storm','cyclone'].some(term=>String(data.event.hazard).toLowerCase().includes(term));
+  if(waterHazard){$('hydro').checked=true;hydroLayer.setVisible(true);}
   data.districts.forEach(district=>{const feature=new Feature(new Polygon([projectRing(district.boundary)]));feature.setProperties({kind:'Political administrative boundary',title:district.name,district});boundarySource.addFeature(feature);});
   if (data.event.longitude != null && data.event.latitude != null) {const feature=new Feature(new Point(fromLonLat([data.event.longitude,data.event.latitude])));feature.setProperties({kind:'Event epicenter',title:data.event.event_name,event:data.event});eventSource.addFeature(feature);}
   timelineDates=[...new Set(data.assets.map(asset=>asset.acquisition_date))].sort();
@@ -83,8 +95,13 @@ function renderResult(data) {
   $('event-date').textContent=`Event: ${data.event.start_date} · ${data.event.event_name}`;
   refreshScenes(); refreshImpact();
   const extent=createEmpty(); [boundarySource,eventSource,...Object.values(vectorSources)].forEach(source=>{if(source.getFeatures().length)extend(extent,source.getExtent())});
-  map.getView().fit(extent,{padding:[70,275,205,430],duration:1200,maxZoom:8});
-  $('status').textContent=`${data.assets.length} candidates · ${data.districts.length} areas · ${data.warnings.length ? data.warnings[0] : 'boundaries resolved'}`;
+  const hasExtent=extent.every(Number.isFinite);
+  if(hasExtent){map.getView().fit(extent,{padding:[70,275,205,430],duration:1200,maxZoom:8});}
+  else if(data.event.longitude!=null&&data.event.latitude!=null){map.getView().animate({center:fromLonLat([data.event.longitude,data.event.latitude]),zoom:7,duration:900});}
+  const noGeometry=!hasExtent&&data.event.longitude==null;
+  $('status').textContent=noGeometry
+    ? `Resolved without coordinates · check Ollama model/configuration · ${data.warnings[0]??'no mapped results'}`
+    : `${data.assets.length} candidates · ${data.districts.length} areas · ${data.warnings.length ? data.warnings[0] : 'boundaries resolved'}`;
 }
 
 $('search').onclick=async()=>{
@@ -94,6 +111,15 @@ $('search').onclick=async()=>{
 };
 
 document.querySelectorAll('[data-layer]').forEach(input=>input.onchange=()=>vectorLayers[input.dataset.layer].setVisible(input.checked));
+$('basemap').onchange=()=>Object.entries(basemapLayers).forEach(([name,layer])=>layer.setVisible(name===$('basemap').value));
+$('hillshade').onchange=()=>hillshadeLayer.setVisible($('hillshade').checked);
+$('hydro').onchange=()=>hydroLayer.setVisible($('hydro').checked);
+document.querySelectorAll('[data-collapse]').forEach(button=>button.onclick=()=>{
+  const panel=button.closest('.panel'); panel.classList.toggle('collapsed');
+  button.textContent=panel.classList.contains('collapsed')?'+':'−';
+  button.setAttribute('aria-expanded',String(!panel.classList.contains('collapsed')));
+  window.setTimeout(()=>map.updateSize(),220);
+});
 $('boundaries').onchange=()=>boundaryLayer.setVisible($('boundaries').checked);
 $('affected').onchange=()=>impactLayer.setVisible($('affected').checked);
 $('radius').oninput=()=>{$('radius-value').textContent=`${$('radius').value} km`;refreshImpact();};

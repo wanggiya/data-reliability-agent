@@ -4,7 +4,7 @@ import json
 import os
 import re
 import tempfile
-from datetime import date
+from datetime import date, datetime, time, timezone
 from pathlib import Path
 from urllib.error import URLError
 from urllib.request import Request, urlopen
@@ -27,8 +27,106 @@ DEFAULT_GAZETTEER = PROJECT_ROOT / "catalog" / "gazetteer.json"
 DEFAULT_CATALOG = PROJECT_ROOT / "catalog" / "satellite_assets.csv"
 
 
+def _planning_target(event: ResolvedEvent) -> DistrictMatch | None:
+    """Create an explicitly non-administrative search area for uncatalogued events."""
+    if event.latitude is None or event.longitude is None:
+        return None
+    half_size = 0.55
+    lon, lat = event.longitude, event.latitude
+    boundary = [
+        [lon - half_size, lat - half_size], [lon + half_size, lat - half_size],
+        [lon + half_size, lat + half_size], [lon - half_size, lat + half_size],
+        [lon - half_size, lat - half_size],
+    ]
+    return DistrictMatch(
+        district_id="dynamic-planning-area",
+        name=f"Planning area near {event.location_text}",
+        admin1="Unresolved administrative area",
+        country_or_area="Resolved by event coordinates",
+        latitude=lat,
+        longitude=lon,
+        match_reason="coordinate-centered fallback; not a political boundary",
+        boundary=boundary,
+        boundary_source="generated-search-area",
+        boundary_status="illustrative-planning-area",
+    )
+
+
+def _illustrative_candidates(
+    event: ResolvedEvent, filter_start: date, filter_end: date
+) -> list[SatelliteAsset]:
+    """Build transparent demo candidates when no curated archive rows match."""
+    if event.latitude is None or event.longitude is None:
+        return []
+    sample_dates = sorted({filter_start, max(filter_start, min(event.start_date, filter_end)), filter_end})
+    products = [
+        ("Sentinel-1C", "SAR_GRD", "GRD", ["VV", "VH"], 10.0, "DESCENDING"),
+        ("Sentinel-1C", "SAR_SLC", "SLC", ["VV", "VH"], 5.0, "ASCENDING"),
+        ("Sentinel-2", "OPTICAL_L2A", "L2A", ["B02", "B03", "B04", "B08", "B11", "B12"], 10.0, None),
+        ("Landsat 9", "OPTICAL_L2SP", "L2SP", ["SR_B2", "SR_B3", "SR_B4", "SR_B5", "SR_B6", "SR_B7"], 30.0, None),
+    ]
+    hazard_note = {
+        "flood": "SAR GRD is prioritized for cloud-tolerant flood extent mapping.",
+        "storm": "SAR and optical candidates support post-storm comparison.",
+        "cyclone": "SAR and optical candidates support post-cyclone comparison.",
+        "wildfire": "Optical NIR/SWIR candidates support burn-severity assessment.",
+        "landslide": "Optical and SAR candidates support surface-change assessment.",
+        "earthquake": "SAR SLC candidates support potential InSAR analysis.",
+    }.get(event.hazard.casefold(), "Candidate mix supports general before/after assessment.")
+    assets: list[SatelliteAsset] = []
+    for date_index, acquired in enumerate(sample_dates):
+        for product_index, (platform, product_type, level, bands, resolution, orbit) in enumerate(products):
+            offset = (product_index - 1.5) * 0.06
+            half_width = 0.62 + product_index * 0.04
+            lon, lat = event.longitude + offset, event.latitude - offset
+            footprint = [
+                [lon - half_width, lat - half_width], [lon + half_width, lat - half_width],
+                [lon + half_width, lat + half_width], [lon - half_width, lat + half_width],
+                [lon - half_width, lat - half_width],
+            ]
+            prefix = platform.upper().replace(" ", "-")
+            filename = f"ILLUSTRATIVE_{prefix}_{level}_{acquired:%Y%m%d}_{date_index + 1:02d}"
+            temporal_phase = "PRE_EVENT" if acquired < event.start_date else (
+                "EVENT_DAY" if acquired == event.start_date else "POST_EVENT"
+            )
+            assets.append(SatelliteAsset(
+                filename=filename,
+                platform=platform,
+                product_type=product_type,
+                processing_level=level,
+                acquisition_date=acquired,
+                acquisition_datetime=datetime.combine(acquired, time(10, 30), tzinfo=timezone.utc),
+                district_id="dynamic-planning-area",
+                orbit_direction=orbit,
+                polarization="VV|VH" if product_type.startswith("SAR") else None,
+                bands=bands,
+                crs="EPSG:4326 (planning footprint)",
+                spatial_resolution_m=resolution,
+                footprint=footprint,
+                temporal_phase=temporal_phase,
+                source_catalog="generated demonstration candidate",
+                catalog_status="illustrative-unverified",
+                verified_remote=False,
+                notes=f"{hazard_note} This is a generated candidate name, not a confirmed provider asset.",
+            ))
+    return assets
+
+
 def _deterministic_event(query: str) -> ResolvedEvent:
     lower = query.casefold()
+    if "flood" in lower and any(term in lower for term in ("sukkur", "larkana", "pakistan")):
+        return ResolvedEvent(
+            query=query,
+            event_name="2022 Pakistan floods",
+            location_text="Sukkur and Larkana, Sindh, Pakistan",
+            start_date=date(2022, 8, 14),
+            end_date=date(2022, 9, 15),
+            hazard="flood",
+            resolution_source="deterministic-demo-gazetteer",
+            confidence=0.72,
+            latitude=27.70,
+            longitude=68.50,
+        )
     if any(term in lower for term in ("dingri", "tingri", "tibet", "nepal")):
         return ResolvedEvent(
             query=query,
@@ -73,17 +171,12 @@ def resolve_event(query: str, mode: str = "ollama") -> ResolvedEvent:
         method="POST",
     )
     try:
-        ollama_timeout = float(
-            os.getenv("OLLAMA_TIMEOUT_SECONDS", "5")
-        )
-        with urlopen(
-            request,
-            timeout=ollama_timeout,
-        ) as response:
-            envelope = json.loads(
-                response.read().decode()
-            )
+        ollama_timeout = float(os.getenv("OLLAMA_TIMEOUT_SECONDS", "5"))
+        with urlopen(request, timeout=ollama_timeout) as response:
+            envelope = json.loads(response.read().decode())
         payload = json.loads(envelope["response"])
+        if payload.get("latitude") is None or payload.get("longitude") is None:
+            raise ValueError("Ollama response did not contain mappable coordinates")
         return ResolvedEvent(
             query=query,
             event_name=payload["event_name"],
@@ -178,10 +271,23 @@ def discover_assets(
     records = selected.astype(object).where(pd.notna(selected), None).to_dict(orient="records")
     assets = [SatelliteAsset.model_validate(record) for record in records]
 
+    if not districts:
+        planning_target = _planning_target(event)
+        if planning_target:
+            districts = [planning_target]
+    if not assets:
+        assets = _illustrative_candidates(event, filter_start, filter_end)
+        if request.platforms:
+            assets = [asset for asset in assets if asset.platform in request.platforms]
+        if request.product_types:
+            assets = [asset for asset in assets if asset.product_type in request.product_types]
+
     warnings = list(boundary_warnings)
     if not districts:
         warnings.append("No district matched the offline gazetteer; add a verified district record before operational use.")
-    if any(asset.catalog_status == "illustrative" for asset in assets):
+    elif any(district.boundary_status == "illustrative-planning-area" for district in districts):
+        warnings.append("No political boundary matched; the displayed target is an illustrative coordinate-centered planning area.")
+    if any(asset.catalog_status.startswith("illustrative") for asset in assets):
         warnings.append("Illustrative filenames demonstrate filtering and product semantics; verify exact archive availability before operational use.")
     run_id = None
     report = None
