@@ -19,6 +19,7 @@ from .disaster_models import (
     SatelliteAsset,
 )
 from .orchestrator import investigate
+from .boundaries import resolve_political_boundaries
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -38,6 +39,8 @@ def _deterministic_event(query: str) -> ResolvedEvent:
             hazard="earthquake",
             resolution_source="deterministic-demo-gazetteer",
             confidence=0.75,
+            latitude=28.639,
+            longitude=87.360,
         )
     today = date.today()
     return ResolvedEvent(
@@ -59,7 +62,7 @@ def resolve_event(query: str, mode: str = "ollama") -> ResolvedEvent:
     base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/")
     prompt = (
         "Resolve the disaster description into structured metadata. Return JSON only with "
-        "event_name, location_text, start_date, end_date, hazard, confidence. Dates must be YYYY-MM-DD. "
+        "event_name, location_text, start_date, end_date, hazard, confidence, latitude, longitude. Dates must be YYYY-MM-DD. "
         "If uncertain, say so through a low confidence; never invent satellite product IDs. "
         f"Description: {query}"
     )
@@ -70,8 +73,16 @@ def resolve_event(query: str, mode: str = "ollama") -> ResolvedEvent:
         method="POST",
     )
     try:
-        with urlopen(request, timeout=60) as response:
-            envelope = json.loads(response.read().decode())
+        ollama_timeout = float(
+            os.getenv("OLLAMA_TIMEOUT_SECONDS", "5")
+        )
+        with urlopen(
+            request,
+            timeout=ollama_timeout,
+        ) as response:
+            envelope = json.loads(
+                response.read().decode()
+            )
         payload = json.loads(envelope["response"])
         return ResolvedEvent(
             query=query,
@@ -82,6 +93,8 @@ def resolve_event(query: str, mode: str = "ollama") -> ResolvedEvent:
             hazard=payload["hazard"],
             resolution_source=f"ollama:{model}",
             confidence=float(payload.get("confidence", 0.5)),
+            latitude=payload.get("latitude"),
+            longitude=payload.get("longitude"),
         )
     except (URLError, TimeoutError, KeyError, ValueError, json.JSONDecodeError):
         fallback = _deterministic_event(query)
@@ -134,6 +147,7 @@ def discover_assets(
     gazetteer_path: str | Path = DEFAULT_GAZETTEER,
     verify_catalog: bool = True,
     output_root: str | Path = "outputs",
+    boundary_mode: str = "live",
 ) -> DiscoveryResult:
     event = resolve_event(request.query, mode)
     filter_start = request.start_date or event.start_date
@@ -142,6 +156,9 @@ def discover_assets(
         raise ValueError("End date must not precede start date")
 
     districts = match_districts(event.location_text, request.query, gazetteer_path)
+    boundary_warnings = []
+    if boundary_mode == "live" and districts:
+        boundary_warnings = resolve_political_boundaries(districts, Path(output_root) / "boundary_cache")
     frame = load_asset_catalog(catalog_path)
     district_ids = {district.district_id for district in districts}
     selected = frame[
@@ -161,7 +178,7 @@ def discover_assets(
     records = selected.astype(object).where(pd.notna(selected), None).to_dict(orient="records")
     assets = [SatelliteAsset.model_validate(record) for record in records]
 
-    warnings = []
+    warnings = list(boundary_warnings)
     if not districts:
         warnings.append("No district matched the offline gazetteer; add a verified district record before operational use.")
     if any(asset.catalog_status == "illustrative" for asset in assets):

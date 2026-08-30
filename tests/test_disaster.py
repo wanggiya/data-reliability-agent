@@ -21,7 +21,7 @@ class DisasterDiscoveryTests(unittest.TestCase):
         result = discover_assets(DiscoveryRequest(
             query="Dingri Tibet Nepal earthquake",
             start_date=date(2025, 1, 7), end_date=date(2025, 1, 10),
-        ), mode="deterministic", verify_catalog=False)
+        ), mode="deterministic", verify_catalog=False, boundary_mode="offline")
         self.assertTrue(result.assets)
         self.assertTrue(all(date(2025, 1, 7) <= item.acquisition_date <= date(2025, 1, 10) for item in result.assets))
         self.assertTrue(all(item.catalog_status == "illustrative" for item in result.assets))
@@ -31,7 +31,7 @@ class DisasterDiscoveryTests(unittest.TestCase):
             query="Dingri Tibet earthquake",
             start_date=date(2025, 1, 1), end_date=date(2025, 1, 31),
             product_types=["DERIVED_INSAR"],
-        ), mode="deterministic", verify_catalog=False)
+        ), mode="deterministic", verify_catalog=False, boundary_mode="offline")
         self.assertEqual(len(result.assets), 1)
         self.assertEqual(result.assets[0].processing_level, "DERIVED")
         self.assertIn("not a raw Sentinel product", result.assets[0].notes)
@@ -39,7 +39,7 @@ class DisasterDiscoveryTests(unittest.TestCase):
     def test_map_geometry_and_scene_metadata_are_exposed(self) -> None:
         result = discover_assets(DiscoveryRequest(
             query="Dingri Tibet earthquake", start_date=date(2025, 1, 1), end_date=date(2025, 1, 31)
-        ), mode="deterministic", verify_catalog=False)
+        ), mode="deterministic", verify_catalog=False, boundary_mode="offline")
         self.assertTrue(all(len(district.boundary) >= 4 for district in result.districts))
         self.assertTrue(all(len(asset.footprint) == 5 for asset in result.assets))
         self.assertTrue(all(asset.crs and asset.bands and asset.acquisition_datetime for asset in result.assets))
@@ -47,7 +47,7 @@ class DisasterDiscoveryTests(unittest.TestCase):
     def test_event_date_is_preserved_and_acquisitions_are_phased(self) -> None:
         result = discover_assets(DiscoveryRequest(
             query="Dingri Tibet earthquake", start_date=date(2025, 1, 1), end_date=date(2025, 1, 31)
-        ), mode="deterministic", verify_catalog=False)
+        ), mode="deterministic", verify_catalog=False, boundary_mode="offline")
         self.assertEqual(result.event.start_date, date(2025, 1, 7))
         self.assertIn("SENTINEL_2", {asset.platform for asset in result.assets})
         self.assertIn("PRE_EVENT", {asset.temporal_phase for asset in result.assets})

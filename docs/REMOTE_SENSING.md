@@ -16,6 +16,10 @@ Before a search, the application shows a global basemap and keeps incident contr
 
 Both district boundaries and satellite footprints bundled here are approximate demonstration polygons. They are marked illustrative in the response contract and must not be presented as authoritative operational geometry.
 
+The current backend improves this by querying geoBoundaries `gbOpen` ADM2 data and spatially selecting the administrative polygon containing each resolved district point. Successful responses are cached and labeled with boundary ID, represented year, and license. When the provider is unavailable or no containing polygon is found, the UI explicitly reports that the offline illustrative fallback is being used.
+
+Scene visibility is independently controlled for Landsat optical, Sentinel-2 optical, Sentinel-1 SLC, Sentinel-1 GRD, and derived InSAR. A translucent planning-radius layer around the event point is deliberately separate from administrative boundaries and does not claim to be an observed damage footprint.
+
 The bundled catalog is intentionally marked `illustrative`. It demonstrates product naming and workflow behavior without claiming that each exact identifier exists in a remote archive. An operational version should query USGS EarthExplorer/M2M and the Copernicus Data Space APIs, preserve provider identifiers, footprints, cloud cover/orbit metadata, and mark records verified only after a successful catalog response.
 
 ## Product semantics

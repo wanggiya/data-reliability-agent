@@ -42,6 +42,7 @@ def build_parser() -> argparse.ArgumentParser:
     discover.add_argument("--catalog")
     discover.add_argument("--gazetteer")
     discover.add_argument("--output-root", default="outputs")
+    discover.add_argument("--boundary-mode", choices=["live", "offline"], default="live")
     return parser
 
 
@@ -67,7 +68,7 @@ def main() -> None:
             platforms=[item.strip() for item in args.platforms.split(",") if item.strip()],
             product_types=[item.strip() for item in args.product_types.split(",") if item.strip()],
         )
-        kwargs = {"mode": args.mode, "output_root": args.output_root}
+        kwargs = {"mode": args.mode, "output_root": args.output_root, "boundary_mode": args.boundary_mode}
         if args.catalog:
             kwargs["catalog_path"] = args.catalog
         if args.gazetteer:

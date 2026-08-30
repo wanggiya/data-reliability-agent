@@ -75,6 +75,8 @@ On the map, hover over district or scene polygons for time, CRS, and band inform
 
 The landing state is a global map with search controls in the sidebar. A successful search recenters the map on the incident. A second acquisition timeline slices visible footprints while preserving the actual event date for pre/post classification.
 
+Map layers can be toggled independently by optical/SAR/InSAR product class. Administrative outlines are resolved from geoBoundaries ADM2 when network access is available and carry source/year/license metadata. The affected-area circle is a user-adjustable planning radius, not an inferred damage polygon.
+
 Run the local API:
 
 ```bash

@@ -14,6 +14,8 @@ class ResolvedEvent(BaseModel):
     hazard: str
     resolution_source: str
     confidence: float = Field(ge=0, le=1)
+    latitude: float | None = None
+    longitude: float | None = None
 
     @model_validator(mode="after")
     def valid_range(self) -> "ResolvedEvent":
@@ -31,6 +33,10 @@ class DistrictMatch(BaseModel):
     longitude: float
     match_reason: str
     boundary: list[list[float]] = Field(default_factory=list)
+    boundary_source: str = "offline-demo"
+    boundary_status: str = "illustrative"
+    boundary_year: str | None = None
+    boundary_license: str | None = None
 
 
 class SatelliteAsset(BaseModel):
