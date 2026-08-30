@@ -14,7 +14,7 @@ textures, and downloadable evidence reporting.
 
 ## Demo video
 
-[Watch the five-minute GeoReliability Agent demonstration](YOUR_VIDEO_URL)
+[Watch the five-minute GeoReliability Agent demonstration]( https://youtu.be/6US2Uzvjn_Y and https://youtu.be/gDBRoXChYE0)
 
 ## User and bottleneck
 
