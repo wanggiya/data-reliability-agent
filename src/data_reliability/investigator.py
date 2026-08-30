@@ -47,7 +47,8 @@ def ollama_plan(profile: DatasetProfile, goal: str, model: str | None = None, ba
         method="POST",
     )
     try:
-        with urlopen(request, timeout=60) as response:
+        ollama_timeout = float(os.getenv("OLLAMA_TIMEOUT_SECONDS", "5"))
+        with urlopen(request, timeout=ollama_timeout) as response:
             envelope = json.loads(response.read().decode())
         payload = json.loads(envelope["response"])
         checks = list(dict.fromkeys(CheckName(value) for value in payload["checks"]))
@@ -62,4 +63,3 @@ def ollama_plan(profile: DatasetProfile, goal: str, model: str | None = None, ba
 
 def create_plan(profile: DatasetProfile, goal: str, mode: str = "ollama") -> InvestigationPlan:
     return ollama_plan(profile, goal) if mode == "ollama" else deterministic_plan(profile, goal)
-

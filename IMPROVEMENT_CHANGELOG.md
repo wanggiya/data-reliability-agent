@@ -34,3 +34,5 @@ The most reliable data agent is not the one allowed to write arbitrary analysis 
 - Added a geometry/metadata contract regression test (14 total tests passing).
 - Added Sentinel-2 Level-2A candidates, a global landing map, sidebar search, automatic incident recentering, and a pre/post-event acquisition timeline (15 total tests passing).
 - Added geoBoundaries ADM2 resolution with caching and explicit fallback provenance, translucent map UI, product-class visibility controls, distinct optical/SAR/InSAR colors, and a separate affected-area planning overlay (17 total tests passing).
+- Added a full-viewport OpenLayers frontend served by FastAPI, with floating translucent controls, product-layer switches, dual-ended acquisition timeline, hover/click metadata, auto-fit, and concentric cartographic impact shading (18 total tests passing).
+- Made both Ollama network timeouts configurable through `OLLAMA_TIMEOUT_SECONDS` with a five-second default.

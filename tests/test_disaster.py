@@ -19,6 +19,11 @@ class DisasterDiscoveryTests(unittest.TestCase):
         self.assertEqual(event.hazard, "flood")
         self.assertIsNotNone(event.latitude)
         self.assertIsNotNone(event.longitude)
+        result = discover_assets(DiscoveryRequest(
+            query=event.query, start_date=date(2022, 8, 1), end_date=date(2022, 9, 15)
+        ), mode="deterministic", verify_catalog=False, boundary_mode="offline")
+        self.assertEqual(len(result.districts[0].boundary), 25)
+        self.assertEqual(result.districts[0].boundary_status, "illustrative-planning-area")
 
     def test_district_matching_includes_cross_border_context(self) -> None:
         matches = match_districts("Dingri County, Tibet", "earthquake affecting Tibet and Nepal")

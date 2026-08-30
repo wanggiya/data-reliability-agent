@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 import os
 import re
 import tempfile
@@ -19,7 +20,7 @@ from .disaster_models import (
     SatelliteAsset,
 )
 from .orchestrator import investigate
-from .boundaries import resolve_political_boundaries
+from .boundaries import resolve_boundary_for_point, resolve_political_boundaries
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -31,18 +32,18 @@ def _planning_target(event: ResolvedEvent) -> DistrictMatch | None:
     """Create an explicitly non-administrative search area for uncatalogued events."""
     if event.latitude is None or event.longitude is None:
         return None
-    half_size = 0.55
     lon, lat = event.longitude, event.latitude
-    boundary = [
-        [lon - half_size, lat - half_size], [lon + half_size, lat - half_size],
-        [lon + half_size, lat + half_size], [lon - half_size, lat + half_size],
-        [lon - half_size, lat - half_size],
-    ]
+    boundary = []
+    for index in range(25):
+        angle = 2 * math.pi * index / 24
+        variation = 1 + 0.10 * math.sin(3 * angle) + 0.06 * math.cos(5 * angle)
+        boundary.append([lon + 0.72 * variation * math.cos(angle), lat + 0.52 * variation * math.sin(angle)])
+    pakistan = "pakistan" in f"{event.location_text} {event.query}".casefold()
     return DistrictMatch(
-        district_id="dynamic-planning-area",
-        name=f"Planning area near {event.location_text}",
-        admin1="Unresolved administrative area",
-        country_or_area="Resolved by event coordinates",
+        district_id="PK-SINDH-POINT" if pakistan else "dynamic-planning-area",
+        name="Sindh coordinate target" if pakistan else f"Planning area near {event.location_text}",
+        admin1="Sindh" if pakistan else "Unresolved administrative area",
+        country_or_area="Pakistan" if pakistan else "Resolved by event coordinates",
         latitude=lat,
         longitude=lon,
         match_reason="coordinate-centered fallback; not a political boundary",
@@ -275,6 +276,11 @@ def discover_assets(
         planning_target = _planning_target(event)
         if planning_target:
             districts = [planning_target]
+            if planning_target.country_or_area == "Pakistan" and boundary_mode == "live":
+                warnings_for_target = resolve_boundary_for_point(
+                    planning_target, "PAK", Path(output_root) / "boundary_cache", "ADM1"
+                )
+                boundary_warnings.extend(warnings_for_target)
     if not assets:
         assets = _illustrative_candidates(event, filter_start, filter_end)
         if request.platforms:

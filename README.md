@@ -11,6 +11,9 @@ Data analysts regularly inherit files without trustworthy documentation. Manual 
 - Resolves disaster location and temporal range with local Ollama, with a reproducible fallback.
 - Maps matched areas and lists candidate Landsat 9, Sentinel-1C SLC/GRD, Sentinel-2 Level-2A, and derived InSAR filenames first.
 - Centers an interactive map on the incident, with target-boundary and satellite-footprint polygons plus hover metadata.
+- Provides light, night, and satellite basemaps plus collapsible controls for a map-first operations view.
+- Enforces a cartographic layer stack, textures candidate scene coverage, and exports a Markdown evidence report with provenance, availability, recommendations, and limitations.
+- Produces explicitly labeled, unverified planning candidates for Ollama-resolved floods, storms, wildfires, landslides, and earthquakes outside the curated demo catalog.
 - Filters candidates by date, platform, product type, and district.
 - Exposes the workflow through CLI, FastAPI, and a two-workflow Streamlit UI.
 - Profiles CSV, Excel, JSON-record, and Parquet tables without modifying the source.
@@ -69,7 +72,19 @@ make ui
 
 Open `http://localhost:8501` for the interactive demo.
 
-The satellite catalog bundled with the demo is illustrative, not a claim of exact remote archive availability. The UI and JSON output expose `catalog_status` and `verified_remote`; see [the remote-sensing design](docs/REMOTE_SENSING.md).
+## Full-screen operations map
+
+The primary GIS presentation is now a true OpenLayers application served by FastAPI. Unlike Streamlit, the map occupies the entire viewport and the search, layer controls, timeline, legend, and acquisition details float over it as translucent panels.
+
+```bash
+make web
+```
+
+Open `http://localhost:8001/app/`. The API remains available at `http://localhost:8001/docs`, while the Streamlit table-investigation interface remains available through `make ui`. Override the development port when needed with `make web PORT=8010`.
+
+The OpenLayers map includes independent optical/SLC/GRD/InSAR visibility, click and hover inspection, authoritative-boundary provenance, automatic incident zoom, a dual-ended acquisition timeline, and a three-zone translucent affected-area planning model.
+
+The satellite catalog bundled with the demo is illustrative, not a claim of exact remote archive availability. Dynamically generated filenames begin with `ILLUSTRATIVE_`, remain `verified_remote=false`, and are candidates rather than provider search results. The UI and JSON output expose `catalog_status` and `verified_remote`; see [the remote-sensing design](docs/REMOTE_SENSING.md).
 
 On the map, hover over district or scene polygons for time, CRS, and band information. Select a filename below the map to inspect the full scene contract. Red polygons are approximate target boundaries; blue/green polygons are illustrative Sentinel/Landsat footprints.
 
@@ -81,8 +96,8 @@ Run the local API:
 
 ```bash
 make api
-curl http://localhost:8000/health
-curl -X POST 'http://localhost:8000/discover?mode=deterministic' \
+curl http://localhost:8001/health
+curl -X POST 'http://localhost:8001/discover?mode=deterministic' \
   -H 'Content-Type: application/json' \
   -d '{"query":"January 2025 earthquake near Dingri, Tibet and Nepal","start_date":"2025-01-01","end_date":"2025-01-31"}'
 ```

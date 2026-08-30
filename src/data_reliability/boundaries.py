@@ -39,17 +39,41 @@ def _read_json(url: str) -> dict:
         return json.loads(response.read().decode("utf-8"))
 
 
-def _country_boundaries(iso: str, cache_root: Path) -> tuple[dict, dict]:
+def _country_boundaries(iso: str, cache_root: Path, admin_level: str = "ADM2") -> tuple[dict, dict]:
     cache_root.mkdir(parents=True, exist_ok=True)
-    cache = cache_root / f"geoboundaries-{iso}-ADM2.json"
-    metadata_cache = cache_root / f"geoboundaries-{iso}-ADM2-metadata.json"
+    cache = cache_root / f"geoboundaries-{iso}-{admin_level}.json"
+    metadata_cache = cache_root / f"geoboundaries-{iso}-{admin_level}-metadata.json"
     if cache.exists() and metadata_cache.exists():
         return json.loads(metadata_cache.read_text(encoding="utf-8")), json.loads(cache.read_text(encoding="utf-8"))
-    metadata = _read_json(f"https://www.geoboundaries.org/api/current/gbOpen/{iso}/ADM2/")
+    metadata = _read_json(f"https://www.geoboundaries.org/api/current/gbOpen/{iso}/{admin_level}/")
     geojson = _read_json(metadata["simplifiedGeometryGeoJSON"])
     metadata_cache.write_text(json.dumps(metadata), encoding="utf-8")
     cache.write_text(json.dumps(geojson), encoding="utf-8")
     return metadata, geojson
+
+
+def resolve_boundary_for_point(
+    district: DistrictMatch,
+    iso: str,
+    cache_root: str | Path = "outputs/boundary_cache",
+    admin_level: str = "ADM1",
+) -> list[str]:
+    """Replace a planning outline with the provider polygon containing its point."""
+    try:
+        metadata, geojson = _country_boundaries(iso, Path(cache_root), admin_level)
+        for feature in geojson.get("features", []):
+            for ring in _outer_rings(feature.get("geometry", {})):
+                if _point_in_ring(district.longitude, district.latitude, ring):
+                    district.boundary = ring
+                    district.name = str(feature.get("properties", {}).get("shapeName") or district.name)
+                    district.boundary_source = f"geoBoundaries {metadata.get('boundaryID', iso)}"
+                    district.boundary_status = "authoritative-provider"
+                    district.boundary_year = str(metadata.get("boundaryYearRepresented", "")) or None
+                    district.boundary_license = metadata.get("boundaryLicense")
+                    return []
+        return [f"No geoBoundaries {admin_level} polygon contained the resolved point; retained an illustrative planning outline."]
+    except (URLError, TimeoutError, KeyError, ValueError, OSError, json.JSONDecodeError) as error:
+        return [f"geoBoundaries was unavailable for {iso}; retained an illustrative planning outline ({type(error).__name__})."]
 
 
 def resolve_political_boundaries(
