@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>GeoReliability Operations Map</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@10.6.1/ol.css">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div id="map"></div>
+
+  <section class="panel search-panel">
+    <div class="brand">GeoReliability <span>OPS MAP</span></div>
+    <textarea id="query">January 2025 earthquake near Dingri, Tibet and Nepal</textarea>
+    <div class="row"><label>From<input id="start" type="date" value="2025-01-01"></label><label>To<input id="end" type="date" value="2025-01-31"></label></div>
+    <div class="row"><select id="mode"><option value="deterministic">Deterministic demo</option><option value="ollama">Ollama resolver</option></select><button id="search">Locate incident</button></div>
+    <div id="status">Ready · global monitoring view</div>
+  </section>
+
+  <section class="panel layer-panel">
+    <h3>Map layers</h3>
+    <label><input data-layer="OPTICAL_L2SP" type="checkbox" checked><i class="swatch landsat"></i>Landsat optical</label>
+    <label><input data-layer="OPTICAL_L2A" type="checkbox" checked><i class="swatch sentinel2"></i>Sentinel-2 optical</label>
+    <label><input data-layer="SAR_SLC" type="checkbox" checked><i class="swatch slc"></i>Sentinel-1 SLC</label>
+    <label><input data-layer="SAR_GRD" type="checkbox" checked><i class="swatch grd"></i>Sentinel-1 GRD</label>
+    <label><input data-layer="DERIVED_INSAR" type="checkbox" checked><i class="swatch insar"></i>Derived InSAR</label>
+    <label><input id="boundaries" type="checkbox" checked><i class="line boundary"></i>Political boundary</label>
+    <label><input id="affected" type="checkbox" checked><i class="swatch impact"></i>Affected-area model</label>
+    <label class="radius">Impact radius <strong id="radius-value">75 km</strong><input id="radius" type="range" min="10" max="150" step="5" value="75"></label>
+  </section>
+
+  <section class="panel timeline-panel">
+    <div class="timeline-title"><strong>Acquisition timeline</strong><span id="event-date">Search to resolve an event</span></div>
+    <div class="timeline-controls"><span id="time-start-label">—</span><input id="time-start" type="range" min="0" max="0" value="0"><input id="time-end" type="range" min="0" max="0" value="0"><span id="time-end-label">—</span></div>
+    <div id="timeline-items"></div>
+  </section>
+
+  <section id="detail" class="panel detail-panel hidden"><button id="detail-close">×</button><h3 id="detail-title"></h3><div id="detail-body"></div></section>
+  <div id="popup" class="popup hidden"></div>
+  <script src="https://cdn.jsdelivr.net/npm/ol@10.6.1/dist/ol.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
