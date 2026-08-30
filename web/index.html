@@ -17,6 +17,7 @@
     <textarea id="query">January 2025 earthquake near Dingri, Tibet and Nepal</textarea>
     <div class="row"><label>From<input id="start" type="date" value="2025-01-01"></label><label>To<input id="end" type="date" value="2025-01-31"></label></div>
     <div class="row"><select id="mode"><option value="deterministic">Deterministic demo</option><option value="ollama">Ollama resolver</option></select><button id="search">Locate incident</button></div>
+    <button id="report" class="report-button" disabled>Download evidence report</button>
     <div id="status">Ready · global monitoring view</div>
     </div>
   </section>
@@ -34,6 +35,9 @@
     <label><input data-layer="DERIVED_INSAR" type="checkbox" checked><i class="swatch insar"></i>Derived InSAR</label>
     <label><input id="boundaries" type="checkbox" checked><i class="line boundary"></i>Political boundary</label>
     <label><input id="affected" type="checkbox" checked><i class="swatch impact"></i>Hazard planning model</label>
+    <label><input id="boundary-texture" type="checkbox" checked><i class="texture-icon forward"></i>Political overlap texture</label>
+    <label><input id="impact-texture" type="checkbox" checked><i class="texture-icon reverse"></i>Radius overlap texture</label>
+    <div class="coverage-note">Pale = full image · / hatch = political overlap · \ hatch = radius influence</div>
     <label class="radius">Impact radius <strong id="radius-value">75 km</strong><input id="radius" type="range" min="10" max="150" step="5" value="75"></label>
     </div>
   </section>
@@ -41,7 +45,7 @@
   <section class="panel timeline-panel">
     <div class="panel-heading timeline-title"><strong>Acquisition timeline</strong><span id="event-date">Search to resolve an event</span><button class="collapse-button" data-collapse aria-label="Collapse timeline">−</button></div>
     <div class="panel-content">
-    <div class="timeline-controls"><span id="time-start-label">—</span><input id="time-start" type="range" min="0" max="0" value="0"><input id="time-end" type="range" min="0" max="0" value="0"><span id="time-end-label">—</span></div>
+    <div class="timeline-controls"><span id="time-start-label">—</span><div class="dual-range"><div class="range-rail"></div><input id="time-start" type="range" min="0" max="0" value="0" aria-label="Timeline start"><input id="time-end" type="range" min="0" max="0" value="0" aria-label="Timeline end"></div><span id="time-end-label">—</span></div>
     <div id="timeline-items"></div>
     </div>
   </section>
@@ -49,6 +53,7 @@
   <section id="detail" class="panel detail-panel hidden"><button id="detail-close">×</button><h3 id="detail-title"></h3><div id="detail-body"></div></section>
   <div id="popup" class="popup hidden"></div>
   <script src="https://cdn.jsdelivr.net/npm/ol@10.6.1/dist/ol.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@turf/turf@7.2.0/turf.min.js"></script>
   <script src="./app.js"></script>
 </body>
 </html>

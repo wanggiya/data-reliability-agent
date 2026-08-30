@@ -13,6 +13,7 @@ const Style = ol.style.Style;
 const Fill = ol.style.Fill;
 const Stroke = ol.style.Stroke;
 const CircleStyle = ol.style.Circle;
+const GeoJSON = ol.format.GeoJSON;
 const fromLonLat = ol.proj.fromLonLat;
 const {createEmpty, extend} = ol.extent;
 
@@ -23,8 +24,22 @@ const palette = {
   SAR_GRD: ['rgba(6,182,212,.24)', '#06b6d4'],
   DERIVED_INSAR: ['rgba(217,70,239,.28)', '#d946ef'],
 };
+const patternCache={};
+function hatchPattern(color,direction='forward',alpha=.62){
+  const key=`${color}-${direction}-${alpha}`;if(patternCache[key])return patternCache[key];
+  const canvas=document.createElement('canvas');canvas.width=10;canvas.height=10;
+  const context=canvas.getContext('2d');context.strokeStyle=color;context.globalAlpha=alpha;context.lineWidth=2;
+  context.beginPath();
+  if(direction==='reverse'){context.moveTo(0,0);context.lineTo(10,10);}
+  else{context.moveTo(0,10);context.lineTo(10,0);}
+  context.stroke();patternCache[key]=context.createPattern(canvas,'repeat');return patternCache[key];
+}
 const vectorSources = Object.fromEntries(Object.keys(palette).map(key => [key, new VectorSource()]));
-const vectorLayers = Object.fromEntries(Object.entries(vectorSources).map(([key, source]) => [key, new VectorLayer({source, style: new Style({fill:new Fill({color:palette[key][0]}),stroke:new Stroke({color:palette[key][1],width:2})})})]));
+const boundaryCoverageSources = Object.fromEntries(Object.keys(palette).map(key => [key, new VectorSource()]));
+const impactCoverageSources = Object.fromEntries(Object.keys(palette).map(key => [key, new VectorSource()]));
+const vectorLayers = Object.fromEntries(Object.entries(vectorSources).map(([key, source]) => [key, new VectorLayer({source,style:new Style({fill:new Fill({color:'rgba(226,232,240,.055)'}),stroke:new Stroke({color:palette[key][1],width:1.2})})})]));
+const boundaryCoverageLayers = Object.fromEntries(Object.entries(boundaryCoverageSources).map(([key,source])=>[key,new VectorLayer({source,style:new Style({fill:new Fill({color:hatchPattern(palette[key][1],'forward',.58)}),stroke:new Stroke({color:palette[key][1],width:1.8})})})]));
+const impactCoverageLayers = Object.fromEntries(Object.entries(impactCoverageSources).map(([key,source])=>[key,new VectorLayer({source,style:new Style({fill:new Fill({color:hatchPattern(palette[key][1],'reverse',.27)}),stroke:new Stroke({color:palette[key][1],width:1.1})})})]));
 const boundarySource = new VectorSource();
 const boundaryLayer = new VectorLayer({source:boundarySource, style:new Style({fill:new Fill({color:'rgba(239,68,68,.04)'}),stroke:new Stroke({color:'#ff3b3b',width:3})})});
 const impactSource = new VectorSource();
@@ -40,7 +55,13 @@ const basemapLayers = {
 };
 const hillshadeLayer=new TileLayer({source:new XYZ({url:'https://server.arcgisonline.com/ArcGIS/rest/services/Elevation/World_Hillshade/MapServer/tile/{z}/{y}/{x}',attributions:'Elevation hillshade © Esri'}),opacity:.48,visible:false});
 const hydroLayer=new TileLayer({source:new XYZ({url:'https://tiles.arcgis.com/tiles/P3ePLMYs2RVChkJx/arcgis/rest/services/Esri_Hydro_Reference_Overlay/MapServer/tile/{z}/{y}/{x}',attributions:'Hydro reference © Esri'}),opacity:.9,visible:false});
-const map = new Map({target:'map',layers:[...Object.values(basemapLayers),hillshadeLayer,hydroLayer,impactLayer,...Object.values(vectorLayers),boundaryLayer,eventLayer],view:new View({center:fromLonLat([15,18]),zoom:2,minZoom:2})});
+Object.values(basemapLayers).forEach(layer=>layer.setZIndex(0));
+hillshadeLayer.setZIndex(10);hydroLayer.setZIndex(65);
+Object.values(vectorLayers).forEach(layer=>layer.setZIndex(40));
+Object.values(boundaryCoverageLayers).forEach(layer=>layer.setZIndex(45));
+Object.values(impactCoverageLayers).forEach(layer=>layer.setZIndex(50));
+boundaryLayer.setZIndex(70);impactLayer.setZIndex(80);eventLayer.setZIndex(90);
+const map = new Map({target:'map',layers:[...Object.values(basemapLayers),hillshadeLayer,...Object.values(vectorLayers),...Object.values(boundaryCoverageLayers),...Object.values(impactCoverageLayers),hydroLayer,boundaryLayer,impactLayer,eventLayer],view:new View({center:fromLonLat([15,18]),zoom:2,minZoom:2})});
 let result = null;
 let timelineDates = [];
 const $ = id => document.getElementById(id);
@@ -53,6 +74,30 @@ function sceneFeature(asset) {
   return feature;
 }
 
+function refreshCoverage(assets){
+  Object.values(boundaryCoverageSources).forEach(source=>source.clear());
+  Object.values(impactCoverageSources).forEach(source=>source.clear());
+  if(!result||!window.turf)return;
+  const boundaryTargets=result.districts.filter(area=>area.boundary?.length>=4).map(area=>turf.polygon([area.boundary]));
+  const impactTarget=result.event.longitude!=null&&result.event.latitude!=null?turf.circle([result.event.longitude,result.event.latitude],Number($('radius').value),{steps:64,units:'kilometers'}):null;
+  const format=new GeoJSON();
+  assets.forEach(asset=>{
+    const scene=turf.polygon([asset.footprint]);
+    boundaryTargets.forEach(target=>{
+      try{
+        const overlap=turf.intersect(turf.featureCollection([scene,target]));if(!overlap)return;
+        const feature=format.readFeature(overlap,{dataProjection:'EPSG:4326',featureProjection:'EPSG:3857'});
+        feature.setProperties({kind:'Political-area image overlap',title:asset.filename,asset});boundaryCoverageSources[asset.product_type]?.addFeature(feature);
+      }catch(error){console.warn('Coverage intersection skipped',error);}
+    });
+    if(impactTarget)try{
+      const overlap=turf.intersect(turf.featureCollection([scene,impactTarget]));if(!overlap)return;
+      const feature=format.readFeature(overlap,{dataProjection:'EPSG:4326',featureProjection:'EPSG:3857'});
+      feature.setProperties({kind:'Radius-influenced image overlap',title:asset.filename,asset});impactCoverageSources[asset.product_type]?.addFeature(feature);
+    }catch(error){console.warn('Impact intersection skipped',error);}
+  });
+}
+
 function refreshScenes() {
   Object.values(vectorSources).forEach(source => source.clear());
   if (!result || !timelineDates.length) return;
@@ -60,6 +105,7 @@ function refreshScenes() {
   const upper = timelineDates[Number($('time-end').value)];
   const visible = result.assets.filter(asset => asset.acquisition_date >= lower && asset.acquisition_date <= upper);
   visible.forEach(asset => vectorSources[asset.product_type]?.addFeature(sceneFeature(asset)));
+  refreshCoverage(visible);
   $('time-start-label').textContent = lower;
   $('time-end-label').textContent = upper;
   $('timeline-items').replaceChildren(...visible.map(asset => {
@@ -102,6 +148,31 @@ function renderResult(data) {
   $('status').textContent=noGeometry
     ? `Resolved without coordinates · check Ollama model/configuration · ${data.warnings[0]??'no mapped results'}`
     : `${data.assets.length} candidates · ${data.districts.length} areas · ${data.warnings.length ? data.warnings[0] : 'boundaries resolved'}`;
+  $('report').disabled=false;
+}
+
+function recommendedProduct(data){
+  const hazard=String(data.event.hazard).toLowerCase();
+  if(['flood','water','storm','cyclone','tsunami'].some(term=>hazard.includes(term)))return ['SAR_GRD','Sentinel-1 GRD supports cloud-tolerant water-extent comparison.'];
+  if(hazard.includes('earthquake')||hazard.includes('landslide'))return ['SAR_SLC','Sentinel-1 SLC is the strongest candidate for displacement or InSAR workflows.'];
+  if(hazard.includes('wildfire'))return ['OPTICAL_L2A','Sentinel-2 NIR/SWIR bands support burn-severity assessment.'];
+  return ['OPTICAL_L2A','Sentinel-2 provides a strong general-purpose optical before/after comparison.'];
+}
+
+function downloadReport(){
+  if(!result)return;
+  const [product,reason]=recommendedProduct(result);const preferred=result.assets.filter(asset=>asset.product_type===product);
+  const lines=[`# GeoReliability evidence report`,``,`Generated: ${new Date().toISOString()}`,``,`## Event`,``,`- Name: ${result.event.event_name}`,
+    `- Hazard: ${result.event.hazard}`,`- Location: ${result.event.location_text}`,`- Event period: ${result.event.start_date} to ${result.event.end_date}`,
+    `- Coordinates: ${result.event.latitude??'unresolved'}, ${result.event.longitude??'unresolved'}`,`- Resolution source: ${result.event.resolution_source}`,
+    `- Confidence: ${result.event.confidence}`,``,`## Best representation`,``,`**${product}** — ${reason}`,`Preferred candidates found: ${preferred.length}.`,``,
+    `## Geographic areas`,``,...result.districts.map(area=>`- ${area.name} — ${area.boundary_status}; source: ${area.boundary_source}`),``,
+    `## Available satellite data`,``,`| Filename | Platform | Product | Date | Phase | CRS | Resolution | Verified |`,`|---|---|---|---|---|---|---:|---|`,
+    ...result.assets.map(asset=>`| ${asset.filename} | ${asset.platform} | ${asset.product_type} | ${asset.acquisition_date} | ${asset.temporal_phase} | ${asset.crs} | ${asset.spatial_resolution_m??'—'} m | ${asset.verified_remote} |`),``,
+    `## Warnings and limitations`,``,...(result.warnings.length?result.warnings.map(warning=>`- ${warning}`):['- None reported.']),``,
+    `Hatched polygons show candidate scene coverage. Planning zones are not observed damage or inundation. Unverified illustrative filenames must be checked in an authoritative provider catalog before operational use.`];
+  const blob=new Blob([lines.join('\n')],{type:'text/markdown;charset=utf-8'});const link=document.createElement('a');link.href=URL.createObjectURL(blob);
+  link.download=`georeliability-${result.event.start_date}.md`;link.click();URL.revokeObjectURL(link.href);
 }
 
 $('search').onclick=async()=>{
@@ -110,10 +181,13 @@ $('search').onclick=async()=>{
   catch(error){$('status').textContent=`Search failed: ${error.message}`;} finally{$('search').disabled=false;}
 };
 
-document.querySelectorAll('[data-layer]').forEach(input=>input.onchange=()=>vectorLayers[input.dataset.layer].setVisible(input.checked));
+document.querySelectorAll('[data-layer]').forEach(input=>input.onchange=()=>{vectorLayers[input.dataset.layer].setVisible(input.checked);boundaryCoverageLayers[input.dataset.layer].setVisible(input.checked);impactCoverageLayers[input.dataset.layer].setVisible(input.checked);});
 $('basemap').onchange=()=>Object.entries(basemapLayers).forEach(([name,layer])=>layer.setVisible(name===$('basemap').value));
 $('hillshade').onchange=()=>hillshadeLayer.setVisible($('hillshade').checked);
 $('hydro').onchange=()=>hydroLayer.setVisible($('hydro').checked);
+$('boundary-texture').onchange=()=>Object.values(boundaryCoverageLayers).forEach(layer=>layer.setVisible($('boundary-texture').checked));
+$('impact-texture').onchange=()=>Object.values(impactCoverageLayers).forEach(layer=>layer.setVisible($('impact-texture').checked));
+$('report').onclick=downloadReport;
 document.querySelectorAll('[data-collapse]').forEach(button=>button.onclick=()=>{
   const panel=button.closest('.panel'); panel.classList.toggle('collapsed');
   button.textContent=panel.classList.contains('collapsed')?'+':'−';
@@ -122,7 +196,7 @@ document.querySelectorAll('[data-collapse]').forEach(button=>button.onclick=()=>
 });
 $('boundaries').onchange=()=>boundaryLayer.setVisible($('boundaries').checked);
 $('affected').onchange=()=>impactLayer.setVisible($('affected').checked);
-$('radius').oninput=()=>{$('radius-value').textContent=`${$('radius').value} km`;refreshImpact();};
+$('radius').oninput=()=>{$('radius-value').textContent=`${$('radius').value} km`;refreshImpact();refreshScenes();};
 $('time-start').oninput=()=>{if(+$('time-start').value>+$('time-end').value)$('time-start').value=$('time-end').value;refreshScenes();};
 $('time-end').oninput=()=>{if(+$('time-end').value<+$('time-start').value)$('time-end').value=$('time-start').value;refreshScenes();};
 $('detail-close').onclick=()=>$('detail').classList.add('hidden');
