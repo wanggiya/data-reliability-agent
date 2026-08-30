@@ -4,6 +4,14 @@ An evidence-first disaster and data investigation workflow. It turns a natural-l
 
 **Submission entry points:** [reproduce the project](docs/REPRODUCTION.md) · [review measured results](EVALUATION.md) · [follow the improvement changelog](IMPROVEMENT_CHANGELOG.md) · [record the five-minute demo](docs/DEMO_SCRIPT.md) · [inspect agent contracts](AGENT_INSTRUCTIONS.md)
 
+## Demo
+
+![GeoReliability flood investigation](docs/images/pakistan-flood.jpg)
+
+The map combines disaster resolution, administrative-boundary provenance,
+satellite planning candidates, temporal filtering, hydrography, affected-area
+textures, and downloadable evidence reporting.
+
 ## User and bottleneck
 
 Data analysts regularly inherit files without trustworthy documentation. Manual inspection is inconsistent and a direct LLM prompt can make plausible claims without calculating evidence. This project combines agent-selected investigation plans with deterministic checks and independent verification. Every accepted claim points to calculated evidence.
