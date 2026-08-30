@@ -11,6 +11,11 @@
 | Day 2 / Iteration 5 | Added automatic repairs initially, then placed them behind explicit human approval after reviewing silent-corruption risk | Tests reject empty approval, unknown IDs and source overwrite | Keep the approval boundary; never execute generated repair code |
 | Day 2 / Iteration 6 | Expanded the benchmark from 6 to 11 cases, including cross-field reconciliation | Baseline F1 0.333; agent F1 1.000 on controlled cases | Keep all cases and disclose that synthetic performance is not real-world accuracy |
 | Day 2 / Iteration 7 | Added Streamlit and Docker for a realistic end-to-end demonstration | UI import smoke test and container build | Keep; feature-freeze the backend before video recording |
+| Day 2 / Iteration 8 | Extended the reliability workflow to disaster requirements and illustrative remote-sensing metadata | Disaster discovery contract tests and filename-first output | Keep; reuse one evidence model instead of building a disconnected GIS demo |
+| Day 2 / Iteration 9 | Replaced the dashboard-first GIS view with a full-viewport OpenLayers map | Frontend contract test and FastAPI smoke path | Keep the map-first interaction; retain Streamlit for table analysis |
+| Day 3 / Iteration 10 | Added live administrative-boundary provenance, explicit fallback geometry, water/terrain context, and ordered cartographic layers | Boundary-provider tests and Pakistan flood regression case | Keep; never present fallback geometry as authoritative |
+| Day 3 / Iteration 11 | Consolidated two temporal controls into one dual-handle timeline and separated political-overlap `/` from radius-overlap `\\` textures | Frontend contract tests; 20-test suite | Keep; independent texture toggles reduce clutter without hiding provenance |
+| Submission hardening | Added exact clean-environment reproduction, timed demo narrative, trajectory requirements, and one-command verification | `make submission-check` | Freeze features; prioritize judge reproducibility and evidence |
 
 ## Main failure mode
 
@@ -19,7 +24,7 @@ Without a user-supplied data contract, the workflow can detect structural anomal
 ## Hot take
 
 The most reliable data agent is not the one allowed to write arbitrary analysis code. It is the one that chooses from transparent tools while deterministic evidence and an independent verifier control what becomes a factual claim.
-# Day 2 geospatial integration
+## Geospatial integration detail
 
 - Added Ollama-assisted disaster event resolution with deterministic fallback.
 - Added offline district matching and map-ready coordinates.

@@ -1,4 +1,4 @@
-.PHONY: install install-all test benchmark demo baseline evaluate discover ui api web docker-up docker-down clean
+.PHONY: install install-all test benchmark demo baseline evaluate discover ui api web submission-check docker-up docker-down clean
 
 install:
 	python3 -m pip install -e .
@@ -34,6 +34,9 @@ api:
 	PYTHONPATH=src uvicorn data_reliability.api:app --reload --host $(HOST) --port $(PORT)
 
 web: api
+
+submission-check:
+	bash scripts/submission_check.sh
 
 docker-up:
 	docker compose up --build

@@ -2,6 +2,8 @@
 
 An evidence-first disaster and data investigation workflow. It turns a natural-language disaster requirement into mapped districts and date-filtered satellite candidates, then reuses the original reliability engine to audit the metadata.
 
+**Submission entry points:** [reproduce the project](docs/REPRODUCTION.md) · [review measured results](EVALUATION.md) · [follow the improvement changelog](IMPROVEMENT_CHANGELOG.md) · [record the five-minute demo](docs/DEMO_SCRIPT.md) · [inspect agent contracts](AGENT_INSTRUCTIONS.md)
+
 ## User and bottleneck
 
 Data analysts regularly inherit files without trustworthy documentation. Manual inspection is inconsistent and a direct LLM prompt can make plausible claims without calculating evidence. This project combines agent-selected investigation plans with deterministic checks and independent verification. Every accepted claim points to calculated evidence.
@@ -38,6 +40,7 @@ make test
 make demo
 make evaluate
 make discover
+make submission-check
 ```
 
 Run with Ollama:
@@ -82,13 +85,13 @@ make web
 
 Open `http://localhost:8001/app/`. The API remains available at `http://localhost:8001/docs`, while the Streamlit table-investigation interface remains available through `make ui`. Override the development port when needed with `make web PORT=8010`.
 
-The OpenLayers map includes independent optical/SLC/GRD/InSAR visibility, click and hover inspection, authoritative-boundary provenance, automatic incident zoom, a dual-ended acquisition timeline, and a three-zone translucent affected-area planning model.
+The OpenLayers map includes independent optical/SLC/GRD/InSAR visibility, click and hover inspection, authoritative-boundary provenance, automatic incident zoom, one dual-ended acquisition timeline, and independently toggled political-overlap and planning-radius textures.
 
 The satellite catalog bundled with the demo is illustrative, not a claim of exact remote archive availability. Dynamically generated filenames begin with `ILLUSTRATIVE_`, remain `verified_remote=false`, and are candidates rather than provider search results. The UI and JSON output expose `catalog_status` and `verified_remote`; see [the remote-sensing design](docs/REMOTE_SENSING.md).
 
-On the map, hover over district or scene polygons for time, CRS, and band information. Select a filename below the map to inspect the full scene contract. Red polygons are approximate target boundaries; blue/green polygons are illustrative Sentinel/Landsat footprints.
+On the map, hover over district or scene polygons for time, CRS, and band information. Select a filename to inspect the full scene contract. Administrative boundaries carry source/fallback provenance; colored satellite footprints remain illustrative.
 
-The landing state is a global map with search controls in the sidebar. A successful search recenters the map on the incident. A second acquisition timeline slices visible footprints while preserving the actual event date for pre/post classification.
+The landing state is a global map with floating search controls. A successful search recenters the map on the incident. The acquisition timeline slices visible footprints while preserving the actual event date for pre/post classification.
 
 Map layers can be toggled independently by optical/SAR/InSAR product class. Administrative outlines are resolved from geoBoundaries ADM2 when network access is available and carry source/year/license metadata. The affected-area circle is a user-adjustable planning radius, not an inferred damage polygon.
 
@@ -135,9 +138,19 @@ outputs/<run-id>/trajectory.jsonl
 
 The baseline is an ordinary profiling script that detects only missing cells and exact duplicate rows. The final workflow receives the same files but can select a broader set of deterministic checks and verifies every resulting claim.
 
+On the controlled 11-case benchmark, baseline F1 is 0.333 and the advanced workflow F1 is 1.000. See [EVALUATION.md](EVALUATION.md) for the fair-comparison contract and limitations.
+
+## Hackathon scope and coding-agent disclosure
+
+The repository was created during the Frontier Engineering Challenge. The initial Day 1 vertical slice covered table profiling, allowlisted planning, evidence verification, reporting, trajectories, a baseline, and six benchmark cases. Day 2–3 work added formats, human-approved repairs, expanded evaluation, deployment, disaster resolution, remote-sensing planning, and the map-first GIS interface. The detailed sequence and rejected/constrained choices are recorded in [IMPROVEMENT_CHANGELOG.md](IMPROVEMENT_CHANGELOG.md).
+
+AI coding assistance was used throughout implementation, debugging, test design, and documentation. Ollama is also an optional runtime planner. Neither coding-agent output nor runtime model output is treated as factual evidence without human review or deterministic verification. Representative trajectory packaging is described in [trajectories/README.md](trajectories/README.md).
+
 ## Safety
 
 Investigation is read-only. The system never executes LLM-generated code. Repairs use a small allowlisted action set, require explicit approval, and always produce a new file.
+
+Runtime maps use third-party services and display their credits. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) before reuse or deployment. The repository owner should also choose and add an explicit license for this project's own source code before inviting reuse; no license is implied by a public repository.
 
 ## Current limitations
 
@@ -146,3 +159,4 @@ Investigation is read-only. The system never executes LLM-generated code. Repair
 - IQR outliers are investigation leads, not proof of erroneous data.
 - Ollama chooses checks but does not directly author evidence or final factual claims.
 - The offline district points and satellite filenames are demonstration metadata; production use requires authoritative polygons and live provider catalog verification.
+- Public basemap, boundary, and tile services may be rate-limited or unavailable; the deterministic data workflow remains runnable without them.
